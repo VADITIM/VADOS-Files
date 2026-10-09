@@ -1,0 +1,5 @@
+build/
+build-release/
+# VAS is cloned here from its own repository and pulled independently (see CLAUDE.md), not vendored.
+.claude/skills/vas/
+packaging/icon/

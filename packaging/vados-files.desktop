@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=VAD/OS Files
+GenericName=File Manager
+Comment=Browse and manage files
+Exec=vados-files %U
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileTools;FileManager;Utility;Core;
+MimeType=inode/directory;
+StartupWMClass=vados-files
+Keywords=files;folders;explorer;browser;
