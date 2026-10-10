@@ -754,4 +754,13 @@ QStringList FolderModel::selectedPaths() const
     return paths;
 }
 
+QStringList FolderModel::mediaPaths() const
+{
+    QStringList paths;
+    for (const FileEntry &entry : m_rows)
+        if (entry.kind == QLatin1String("image") || entry.kind == QLatin1String("video"))
+            paths.append(entry.path);
+    return paths;
+}
+
 // #endregion ─────────────────────────────────────────────────────────────────────────────────

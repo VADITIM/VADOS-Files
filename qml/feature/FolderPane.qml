@@ -240,6 +240,8 @@ FocusScope {
             navigate(entry.path, { direction: folderModel.mode === "search" ? "jump" : "into" })
         else if (Picker.isActive)
             workspace.pickFile(entry.path)
+        else if (folderModel.mode !== "trash" && (entry.kind === "image" || entry.kind === "video"))
+            System.openMedia(entry.path, folderModel.mediaPaths())
         else if (folderModel.mode !== "trash")
             System.open(entry.path)
     }
@@ -256,7 +258,7 @@ FocusScope {
         }
         for (const target of paths)
             if (!System.isDirectory(target))
-                System.open(target)
+                System.isMedia(target) ? System.openMedia(target, folderModel.mediaPaths()) : System.open(target)
     }
 
     function ensureVisible(index: int) {

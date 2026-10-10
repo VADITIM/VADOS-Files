@@ -121,6 +121,8 @@ public:
     Q_INVOKABLE void clearSelection();
     Q_INVOKABLE bool isSelected(int row) const;
     Q_INVOKABLE QStringList selectedPaths() const;
+    // The photos and videos of the folder in the order they are shown, which VAD/OS Gallery swipes through when one of them is opened.
+    Q_INVOKABLE QStringList mediaPaths() const;
 
 signals:
     void pathChanged();

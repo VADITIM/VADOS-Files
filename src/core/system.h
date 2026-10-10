@@ -31,6 +31,9 @@ public:
     static void setInitialPath(const QString &path);
 
     Q_INVOKABLE void open(const QString &path);
+    // A photo or video opens in VAD/OS Gallery (org.vados.Gallery on the session bus) among the files it was listed with; without the gallery, in the system's default.
+    Q_INVOKABLE void openMedia(const QString &path, const QStringList &siblings);
+    Q_INVOKABLE bool isMedia(const QString &path) const;
     Q_INVOKABLE QVariantList applicationsFor(const QString &path) const;
     Q_INVOKABLE void openWith(const QString &desktopFile, const QStringList &paths);
     Q_INVOKABLE void openTerminal(const QString &directory, const QString &command);

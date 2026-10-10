@@ -8,6 +8,14 @@ Item {
     property var workspace
     property var pane: null
     property var entry: ({})
+
+    // A photo or video goes to VAD/OS Gallery with the folder's other photos, in the order this pane shows them.
+    function openEntry() {
+        if (System.isMedia(entry.path) && pane && pane.model)
+            System.openMedia(entry.path, pane.model.mediaPaths())
+        else
+            System.open(entry.path)
+    }
     property string textContent: ""
     property real progress: 0
     property bool isOpen: false
@@ -131,7 +139,7 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            onDoubleClicked: if (root.entry.path) System.open(root.entry.path)
+            onDoubleClicked: if (root.entry.path) root.openEntry()
         }
 
         Item {
@@ -238,7 +246,7 @@ Item {
                 anchors.bottom: parent.bottom
                 spacing: Theme.rem * 0.35
 
-                Pill { text: "open"; onClicked: { System.open(root.entry.path); root.close() } }
+                Pill { text: "open"; onClicked: { root.openEntry(); root.close() } }
                 Pill { text: "close"; onClicked: root.close() }
             }
 
@@ -275,7 +283,7 @@ Item {
             case Qt.Key_Up: root.step(root.pane.viewMode === "grid" ? -root.pane.columns : -1); break
             case Qt.Key_Down: root.step(root.pane.viewMode === "grid" ? root.pane.columns : 1); break
             case Qt.Key_Return:
-            case Qt.Key_Enter: System.open(root.entry.path); root.close(); break
+            case Qt.Key_Enter: root.openEntry(); root.close(); break
             default: return
             }
             event.accepted = true

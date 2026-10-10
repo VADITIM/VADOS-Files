@@ -1,6 +1,10 @@
 #include "system.h"
 
 #include <QClipboard>
+#include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#include <QDBusMessage>
+#include <QDBusPendingCall>
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
@@ -98,6 +102,29 @@ QString System::initialPath() const
 void System::open(const QString &path)
 {
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+
+bool System::isMedia(const QString &path) const
+{
+    const QString name = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchExtension).name();
+    return name.startsWith(QLatin1String("image/")) || name.startsWith(QLatin1String("video/"));
+}
+
+void System::openMedia(const QString &path, const QStringList &siblings)
+{
+    // The gallery is asked by name; D-Bus starts it when it is installed and not running, and one already open takes the photo.
+    const QString service = QStringLiteral("org.vados.Gallery");
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QDBusConnectionInterface *registry = bus.isConnected() ? bus.interface() : nullptr;
+    const bool isRunning = registry && registry->isServiceRegistered(service);
+    const bool isActivatable = registry && registry->activatableServiceNames().value().contains(service);
+    if (!isRunning && !isActivatable) {
+        open(path);
+        return;
+    }
+    QDBusMessage call = QDBusMessage::createMethodCall(service, QStringLiteral("/org/vados/Gallery"), service, QStringLiteral("Open"));
+    call << path << siblings;
+    bus.asyncCall(call, 8000);
 }
 
 QVariantList System::applicationsFor(const QString &path) const
