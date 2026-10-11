@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    permissions:
+      contents: write
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed base-devel git cmake ninja github-cli qt6-base qt6-declarative qt6-svg qt6-shadertools libarchive
+
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          (cmake -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build-release) 2>&1 | tee build.log || { grep -E 'error' build.log | tail -n 40; exit 1; }
+
+      - name: Package
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^project(vados-files VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          mkdir -p out
+          tar -C build-release -czf "out/vados-files-v$VERSION.tar.gz" vados-files
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vados-files
+          path: out/
+
+      - name: Publish release
+        if: >-
+          github.ref == 'refs/heads/master' &&
+          (github.event_name == 'workflow_dispatch' ||
+           (github.event_name == 'push' && vars.RELEASE_ON_PUSH == 'true'))
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "v$VERSION" --cleanup-tag --yes || true
+          gh release create "v$VERSION" "out/vados-files-v$VERSION.tar.gz" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --notes-file RELEASE_NOTES.md
