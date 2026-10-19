@@ -1,13 +1,13 @@
 import QtQuick
 import Vados
 
-// The left column: the user's pins (PINNED: reorder by dragging, rename, change icon, unpin), the drives, and the transfers while any are running.
+// The left column: every drive that is not the system itself (DRIVES, first, so a card or a stick is seen the moment it is plugged), the user's pins (PINNED: reorder by dragging, rename, change icon, unpin), and the transfers while any are running.
 // Every row is also a drop target that springs open when a drag waits on it; dragging a folder out of a pane opens a slot to pin it.
 Item {
     id: root
 
     property var workspace
-    readonly property var modules: [pinnedModule, drivesModule].filter(module => module.visible)
+    readonly property var modules: [drivesModule, pinnedModule].filter(module => module.visible)
     readonly property var activePane: workspace ? workspace.activePane : null
     // Exactly one pin is lit: the one pinned at this folder, else the room root it sits in.
     readonly property string litPath: {
@@ -19,6 +19,31 @@ Item {
         id: stack
         width: parent.width
         spacing: Theme.gap
+
+        Module {
+            id: drivesModule
+            width: parent.width
+            visible: drivesColumn.implicitHeight > 0
+            height: topPadding + drivesColumn.implicitHeight + bottomPadding
+            label: "drives"
+            topPadding: Theme.rem * 2.3
+            sidePadding: Theme.rem * 0.45
+            bottomPadding: Theme.rem * 0.5
+
+            Column {
+                id: drivesColumn
+                width: parent.width
+                Repeater {
+                    model: PlacesModel
+                    delegate: PlaceRow {
+                        workspace: root.workspace
+                        litPath: root.litPath
+                        visible: section === "drives"
+                        width: drivesColumn.width
+                    }
+                }
+            }
+        }
 
         Module {
             id: pinnedModule
@@ -138,37 +163,13 @@ Item {
                 }
             }
         }
-
-        Module {
-            id: drivesModule
-            width: parent.width
-            visible: drivesColumn.implicitHeight > 0
-            height: topPadding + drivesColumn.implicitHeight + bottomPadding
-            topPadding: Theme.rem * 0.5
-            sidePadding: Theme.rem * 0.45
-            bottomPadding: Theme.rem * 0.5
-
-            Column {
-                id: drivesColumn
-                width: parent.width
-                Repeater {
-                    model: PlacesModel
-                    delegate: PlaceRow {
-                        workspace: root.workspace
-                        litPath: root.litPath
-                        visible: section === "drives"
-                        width: drivesColumn.width
-                    }
-                }
-            }
-        }
     }
 
     // Pins the folder being shown.
     IconButton {
         anchors.right: parent.right
         anchors.rightMargin: Theme.rem * 0.35
-        y: Theme.rem * 0.45
+        y: pinnedModule.y + Theme.rem * 0.45
         width: Theme.rem * 1.4
         height: width
         glyphSize: Theme.rem * 0.7

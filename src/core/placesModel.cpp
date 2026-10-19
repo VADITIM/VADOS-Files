@@ -44,11 +44,19 @@ PlacesModel::PlacesModel(QObject *parent)
     m_driveDebounce.setSingleShot(true);
     m_driveDebounce.setInterval(400);
     connect(&m_driveDebounce, &QTimer::timeout, this, &PlacesModel::refreshDrives);
-    // Device nodes appear and vanish under /dev/disk/by-uuid as drives are plugged, and mount points under /run/media; watching both catches a plug and a mount without polling.
-    for (const QString &watched : {QStringLiteral("/dev/disk/by-uuid"), QStringLiteral("/run/media/") + qEnvironmentVariable("USER")})
-        if (QFileInfo(watched).isDir())
-            m_watcher.addPath(watched);
-    connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] { m_driveDebounce.start(); });
+    // Device nodes appear and vanish under /dev/disk/by-uuid as drives are plugged, and mount points under /run/media/$USER and /media; watching them catches a plug and a mount without polling.
+    // /run/media/$USER does not exist until udisks first mounts something, so /run/media is watched too and the user's folder is added the moment it appears; otherwise a card an automounter mounts after the plug would stay "not mounted".
+    const QString userMedia = QStringLiteral("/run/media/") + qEnvironmentVariable("USER");
+    const auto watchAll = [this, userMedia] {
+        for (const QString &watched : {QStringLiteral("/dev/disk/by-uuid"), QStringLiteral("/dev/disk"), QStringLiteral("/run/media"), userMedia, QStringLiteral("/media")})
+            if (QFileInfo(watched).isDir() && !m_watcher.directories().contains(watched))
+                m_watcher.addPath(watched);
+    };
+    watchAll();
+    connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, [this, watchAll] {
+        watchAll();
+        m_driveDebounce.start();
+    });
     buildRooms();
     loadPins();
     rebuild();
@@ -379,7 +387,9 @@ void PlacesModel::refreshDrives()
             for (const QJsonValue &value : nodes) {
                 const QJsonObject node = value.toObject();
                 const QString nodeModel = node.value(QStringLiteral("model")).toString(model).trimmed();
-                const bool nodeRemovable = isRemovable || node.value(QStringLiteral("hotplug")).toBool() || node.value(QStringLiteral("rm")).toBool();
+                // A built-in SD reader often reports neither hotplug nor rm, but the card in it is always removable.
+                const bool nodeRemovable = isRemovable || node.value(QStringLiteral("hotplug")).toBool() || node.value(QStringLiteral("rm")).toBool()
+                    || node.value(QStringLiteral("path")).toString().startsWith(QLatin1String("/dev/mmcblk"));
                 if (node.contains(QStringLiteral("children")))
                     walk(node.value(QStringLiteral("children")).toArray(), nodeModel, nodeRemovable);
                 const QString fileSystem = node.value(QStringLiteral("fstype")).toString();
