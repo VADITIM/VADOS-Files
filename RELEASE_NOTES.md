@@ -1,3 +1,4 @@
-# 0.1.0
+# 0.1.1
 
-- Qt 6 file manager for Hyprland, built on V/AS.
+- Drives sit at the top of the sidebar, and a drive an automounter mounts after the plug is picked up.
+- New app icon: a yellow folder carrying `/_`, on the rounded VAD/OS ground.
